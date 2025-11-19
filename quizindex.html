@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz Maker</title>
+<style>
+body{font-family:Arial;margin:20px}
+input,button{padding:8px;margin:5px;width:100%}
+.card{border:1px solid #ccc;padding:10px;margin-top:10px;border-radius:6px}
+</style>
+</head>
+<body>
+
+<h2>Online Quiz Maker</h2>
+
+<!-- LOGIN -->
+<div id="auth">
+  <h3>Login</h3>
+  <input id="user" placeholder="Username">
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- HOME -->
+<div id="home" style="display:none">
+  <h3>Welcome <span id="uname"></span></h3>
+  <button onclick="show('create')">Create Quiz</button>
+  <button onclick="show('list')">Take Quiz</button>
+</div>
+
+<!-- CREATE QUIZ -->
+<div id="create" style="display:none">
+  <h3>Create Quiz</h3>
+  <input id="qtitle" placeholder="Quiz Title">
+
+  <div id="qs"></div>
+
+  <button onclick="addQ()">Add Question</button>
+  <button onclick="saveQuiz()">Save Quiz</button>
+  <button onclick="show('home')">Back</button>
+</div>
+
+<!-- LIST -->
+<div id="list" style="display:none">
+  <h3>Available Quizzes</h3>
+  <div id="quizList"></div>
+  <button onclick="show('home')">Back</button>
+</div>
+
+<!-- TAKE QUIZ -->
+<div id="take" style="display:none">
+  <h3 id="tTitle"></h3>
+  <div id="tArea"></div>
+</div>
+
+<script>
+let quizzes = JSON.parse(localStorage.getItem("quizzes") || "[]");
+let user="", curQuiz, index=0, score=0;
+
+function login(){
+  user = document.getElementById("user").value.trim();
+  if(user==="") return alert("Enter username");
+  document.getElementById("uname").innerText = user;
+  show("home");
+}
+
+function show(page){
+  ["auth","home","create","list","take"].forEach(id=>{
+    document.getElementById(id).style.display = id===page ? "block" : "none";
+  });
+  if(page==="list") loadList();
+  if(page==="create") qs.innerHTML="";
+}
+
+function addQ(){
+  qs.insertAdjacentHTML("beforeend",`
+    <div class="card">
+      <input placeholder="Question">
+      <input placeholder="Option A">
+      <input placeholder="Option B">
+      <input placeholder="Option C">
+      <input placeholder="Correct Answer (A/B/C)">
+    </div>
+  `);
+}
+
+function saveQuiz(){
+  let title = qtitle.value.trim();
+  if(!title) return alert("Enter quiz title");
+
+  let qCards = [...qs.children];
+  if(qCards.length === 0) return alert("Add at least 1 question");
+
+  let data = qCards.map(card=>{
+    let inputs = [...card.querySelectorAll("input")].map(i=>i.value.trim());
+    return { q:inputs[0], a:[inputs[1],inputs[2],inputs[3]], c:inputs[4] };
+  });
+
+  quizzes.push({title, qs:data});
+  localStorage.setItem("quizzes", JSON.stringify(quizzes));
+  alert("Quiz Saved!");
+  show("home");
+}
+
+function loadList(){
+  quizList.innerHTML="";
+  quizzes.forEach((q,i)=>{
+    quizList.innerHTML += `
+      <div class="card">
+        <b>${q.title}</b><br>
+        <button onclick="startQuiz(${i})">Start Quiz</button>
+      </div>
+    `;
+  });
+}
+
+function startQuiz(i){
+  curQuiz = quizzes[i];
+  index = 0;
+  score = 0;
+  show("take");
+  tTitle.innerText = curQuiz.title;
+  loadQuestion();
+}
+
+function loadQuestion(){
+  if(index >= curQuiz.qs.length) return showScore();
+
+  let q = curQuiz.qs[index];
+  tArea.innerHTML = `
+    <h3>${q.q}</h3>
+    <button onclick="submitAns('A')">${q.a[0]}</button>
+    <button onclick="submitAns('B')">${q.a[1]}</button>
+    <button onclick="submitAns('C')">${q.a[2]}</button>
+  `;
+}
+
+function submitAns(ans){
+  if(ans === curQuiz.qs[index].c) score++;
+  index++;
+  loadQuestion();
+}
+
+function showScore(){
+  tArea.innerHTML = `
+    <h2>Your Score: ${score}/${curQuiz.qs.length}</h2>
+    <button onclick="show('home')">Back Home</button>
+  `;
+}
+</script>
+
+</body>
+</html>
